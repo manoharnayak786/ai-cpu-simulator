@@ -57,8 +57,10 @@ class CPUSimulator:
 
     def assign_tasks(self):
         for task in self.tasks:
-            target = self.wait_queue_perf if task.difficulty > self.threshold else self.wait_queue_eff
-            target.append(task)
+            if task.difficulty > self.threshold:
+                self.wait_queue_perf.append(task)
+            else:
+                self.wait_queue_eff.append(task)
         self.tasks = []  # All assigned to queues
 
     def assign_to_cores(self):
