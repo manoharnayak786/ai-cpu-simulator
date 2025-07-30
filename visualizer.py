@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # visualizer.py - Professional visualizations for CPU simulator results
 
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend for file generation
 import matplotlib.pyplot as plt
 import numpy as np
 from ai_workloads import run_ai_workload_comparison, AIWorkloadProfiler
@@ -121,6 +123,42 @@ class CPUSimulatorVisualizer:
         lines1, labels1 = ax.get_legend_handles_labels()
         lines2, labels2 = ax_twin.get_legend_handles_labels()
         ax.legend(lines1 + lines2, labels1 + labels2, loc='upper left')
+    
+    def _plot_performance_heatmap(self, ax, results):
+        """Plot performance heatmap for different configurations"""
+        
+        # Create performance matrix
+        configs = list(set([r['config'] for r in results]))
+        scenarios = list(set([r['scenario'] for r in results]))
+        
+        # Create matrix for cycles
+        matrix = np.zeros((len(scenarios), len(configs)))
+        
+        for i, scenario in enumerate(scenarios):
+            for j, config in enumerate(configs):
+                scenario_result = [r for r in results if r['scenario'] == scenario and r['config'] == config]
+                if scenario_result:
+                    matrix[i, j] = scenario_result[0]['cycles']
+        
+        # Create heatmap
+        im = ax.imshow(matrix, cmap='RdYlBu_r', aspect='auto')
+        
+        # Set labels
+        ax.set_xticks(range(len(configs)))
+        ax.set_yticks(range(len(scenarios)))
+        ax.set_xticklabels([c.replace(' ', '\n') for c in configs], rotation=45, ha='right')
+        ax.set_yticklabels([s.replace(' ', '\n') for s in scenarios])
+        
+        # Add values to heatmap
+        for i in range(len(scenarios)):
+            for j in range(len(configs)):
+                text = ax.text(j, i, f'{int(matrix[i, j])}', 
+                             ha="center", va="center", color="white", fontweight='bold')
+        
+        ax.set_title('🗺️ Performance Heatmap (Cycles)', fontweight='bold')
+        
+        # Add colorbar
+        plt.colorbar(im, ax=ax, label='CPU Cycles')
 
 def main():
     """Run comprehensive visualization suite"""
