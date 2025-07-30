@@ -61,7 +61,7 @@ class CPUSimulator:
                 self.wait_queue_perf.append(task)
             else:
                 self.wait_queue_eff.append(task)
-        self.tasks = []  # All assigned to queues
+        # Don't clear self.tasks - keep original list for reference
 
     def assign_to_cores(self):
         # Assign tasks to preferred core types first
@@ -73,16 +73,18 @@ class CPUSimulator:
                 core.assign_task(self.wait_queue_eff.pop(0))
         
         # Fallback: If no efficiency cores exist, performance cores handle light tasks
-        if not self.eff_cores:
+        if not self.eff_cores and self.wait_queue_eff:
             for core in self.perf_cores:
                 if core.is_idle() and self.wait_queue_eff:
                     core.assign_task(self.wait_queue_eff.pop(0))
         
         # Fallback: If no performance cores exist, efficiency cores handle heavy tasks  
-        if not self.perf_cores:
+        if not self.perf_cores and self.wait_queue_perf:
             for core in self.eff_cores:
                 if core.is_idle() and self.wait_queue_perf:
                     core.assign_task(self.wait_queue_perf.pop(0))
+        
+
 
     def run_cycle(self):
         self.cycle += 1
@@ -95,11 +97,16 @@ class CPUSimulator:
         self.assign_tasks()
         print(f"\nStarting Simulation...\n")
         total_tasks = len(self.wait_queue_perf) + len(self.wait_queue_eff)
+
         while len(self.completed_tasks) < total_tasks:
             print(f"Cycle {self.cycle + 1}")
             self.assign_to_cores()
             self.run_cycle()
             self.print_core_status()
+            # Check if all tasks are completed after this cycle
+            if len(self.completed_tasks) >= total_tasks:
+                break
+        # Calculate total energy from all cores
         self.total_energy = sum(core.energy_used for core in self.perf_cores + self.eff_cores)
 
     def print_core_status(self):
