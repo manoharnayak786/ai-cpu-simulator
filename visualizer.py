@@ -1,18 +1,72 @@
 #!/usr/bin/env python3
 # visualizer.py - Professional visualizations for CPU simulator results
 
-import matplotlib
-matplotlib.use('Agg')  # Use non-interactive backend for file generation
-import matplotlib.pyplot as plt
-import numpy as np
+try:
+    import matplotlib
+    matplotlib.use('Agg')  # Use non-interactive backend for file generation
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import seaborn as sns
+    
+    # Set professional styling with fallback
+    try:
+        plt.style.use('seaborn-v0_8')
+    except OSError:
+        try:
+            plt.style.use('seaborn')
+        except OSError:
+            # Use default matplotlib style if seaborn styles are not available
+            plt.style.use('default')
+    
+    try:
+        sns.set_palette("husl")
+    except NameError:
+        pass  # seaborn not available, skip palette setting
+    
+    VISUALIZATION_AVAILABLE = True
+except ImportError as e:
+    print(f"📊 Visualization dependencies not available: {e}")
+    print("📦 To enable visualizations, install: pip install matplotlib seaborn numpy")
+    VISUALIZATION_AVAILABLE = False
+    
+    # Create dummy classes to prevent import errors
+    class plt:
+        @staticmethod
+        def subplots(*args, **kwargs):
+            return None, None
+        @staticmethod
+        def show():
+            pass
+        @staticmethod
+        def savefig(*args, **kwargs):
+            pass
+        @staticmethod
+        def tight_layout():
+            pass
+        @staticmethod
+        def colorbar(*args, **kwargs):
+            pass
+        class cm:
+            @staticmethod
+            def Set3(x):
+                return [[0.1, 0.2, 0.3]] * len(x) if hasattr(x, '__len__') else [0.1, 0.2, 0.3]
+    
+    class np:
+        @staticmethod
+        def linspace(start, stop, num):
+            return [start + i * (stop - start) / (num - 1) for i in range(num)]
+        @staticmethod
+        def mean(x):
+            return sum(x) / len(x) if x else 0
+        @staticmethod
+        def zeros(shape):
+            if isinstance(shape, tuple):
+                return [[0] * shape[1] for _ in range(shape[0])]
+            return [0] * shape
+
 from ai_workloads import run_ai_workload_comparison, AIWorkloadProfiler
 from core_simulator import CPUSimulator
 from cycle_analysis import CycleControlledSimulator
-import seaborn as sns
-
-# Set professional styling
-plt.style.use('seaborn-v0_8')
-sns.set_palette("husl")
 
 class CPUSimulatorVisualizer:
     """Professional visualization suite for CPU simulator results"""
@@ -23,6 +77,14 @@ class CPUSimulatorVisualizer:
         
     def plot_cycles_vs_energy(self, results=None, save_path=None):
         """Create comprehensive cycles vs energy analysis plots"""
+        
+        if not VISUALIZATION_AVAILABLE:
+            print("❌ Visualization not available - missing matplotlib/seaborn dependencies")
+            print("📊 Results summary instead:")
+            if results is None:
+                results = run_ai_workload_comparison()
+            self._print_text_summary(results)
+            return None
         
         if results is None:
             print("🔄 Generating AI workload data...")
@@ -159,6 +221,20 @@ class CPUSimulatorVisualizer:
         
         # Add colorbar
         plt.colorbar(im, ax=ax, label='CPU Cycles')
+
+    def _print_text_summary(self, results):
+        """Print text-based summary when visualization is not available"""
+        print("\n" + "="*60)
+        print("📊 CPU SIMULATOR ANALYSIS SUMMARY")
+        print("="*60)
+        
+        # Group by scenario
+        scenarios = list(set([r['scenario'] for r in results]))
+        for scenario in scenarios:
+            print(f"\n🎯 {scenario}:")
+            scenario_data = [r for r in results if r['scenario'] == scenario]
+            for result in scenario_data:
+                print(f"   {result['config']}: {result['cycles']} cycles, {result['energy']:.1f} energy")
 
 def main():
     """Run comprehensive visualization suite"""
