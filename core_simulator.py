@@ -83,6 +83,17 @@ class CPUSimulator:
             for core in self.eff_cores:
                 if core.is_idle() and self.wait_queue_perf:
                     core.assign_task(self.wait_queue_perf.pop(0))
+        
+        # Additional fallback: Assign cross-type when preferred cores are busy
+        # Performance cores can handle light tasks when efficiency cores are busy
+        for core in self.perf_cores:
+            if core.is_idle() and self.wait_queue_eff:
+                core.assign_task(self.wait_queue_eff.pop(0))
+        
+        # Efficiency cores can handle heavy tasks when performance cores are busy  
+        for core in self.eff_cores:
+            if core.is_idle() and self.wait_queue_perf:
+                core.assign_task(self.wait_queue_perf.pop(0))
 
     def run_cycle(self):
         self.cycle += 1
